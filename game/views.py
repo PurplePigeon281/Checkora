@@ -606,6 +606,14 @@ def register_view(request):
                     # Return the same generic response as a successful
                     # registration so attackers cannot distinguish
                     # between "email/username exists" and "new account".
+                    request.session['registration_user_id'] = -1
+                    request.session['registration_email'] = email
+                    dummy_otp = str(secrets.randbelow(900000) + 100000)
+                    dummy_otp_hash = hashlib.sha256(
+                        f"{dummy_otp}:{settings.SECRET_KEY}".encode()
+                    ).hexdigest()
+                    request.session['registration_otp_hash'] = dummy_otp_hash
+                    request.session['otp_created_at'] = time.time()
                     messages.success(
                         request,
                         'If your details are valid, a verification '
@@ -636,6 +644,14 @@ def register_view(request):
                     except IntegrityError:
                         # Concurrent insert beat us despite the atomic
                         # block — return the same generic message.
+                        request.session['registration_user_id'] = -1
+                        request.session['registration_email'] = email
+                        dummy_otp = str(secrets.randbelow(900000) + 100000)
+                        dummy_otp_hash = hashlib.sha256(
+                            f"{dummy_otp}:{settings.SECRET_KEY}".encode()
+                        ).hexdigest()
+                        request.session['registration_otp_hash'] = dummy_otp_hash
+                        request.session['otp_created_at'] = time.time()
                         messages.success(
                             request,
                             'If your details are valid, a verification '
@@ -752,6 +768,7 @@ def verify_otp(request):
                 request.session.pop('registration_otp_hash', None)
                 request.session.pop('otp_created_at', None)
                 request.session.pop('registration_user_id', None)
+                request.session.pop('registration_email', None)
 
                 return redirect('register')
 
@@ -766,6 +783,8 @@ def verify_otp(request):
             stored_otp_hash
         ):
             try:
+                if user_id == -1:
+                    raise User.DoesNotExist()
                 user = User.objects.get(id=user_id)
                 user.is_active = True
                 user.full_clean()
@@ -773,6 +792,7 @@ def verify_otp(request):
                 del request.session['registration_user_id']
                 del request.session['registration_otp_hash']
                 request.session.pop('otp_created_at', None)
+                request.session.pop('registration_email', None)
 
                 try:
                     html_content = render_to_string(
@@ -807,6 +827,10 @@ def verify_otp(request):
                     request,
                     'User not found. Please register again.'
                 )
+                request.session.pop('registration_otp_hash', None)
+                request.session.pop('otp_created_at', None)
+                request.session.pop('registration_user_id', None)
+                request.session.pop('registration_email', None)
                 return redirect('register')
 
         else:
@@ -819,21 +843,24 @@ def verify_otp(request):
         elapsed = int(time.time() - last_otp_time)
         remaining_time = max(0, 60 - elapsed)
 
-    try:
-        user = User.objects.get(id=user_id)
-        email = user.email
+    email = None
+    if user_id == -1:
+        email = request.session.get('registration_email')
+    else:
+        try:
+            user = User.objects.get(id=user_id)
+            email = user.email
+        except User.DoesNotExist:
+            email = None
 
-        if email and '@' in email:
-            name, domain = email.split('@', 1)
-            if len(name) <= 2:
-                masked_name = name[:1]
-            else:
-                masked_name = name[:2] + '*' * (len(name) - 2)
-            user_email = f"{masked_name}@{domain}"
+    if email and '@' in email:
+        name, domain = email.split('@', 1)
+        if len(name) <= 2:
+            masked_name = name[:1]
         else:
-            user_email = None
-
-    except User.DoesNotExist:
+            masked_name = name[:2] + '*' * (len(name) - 2)
+        user_email = f"{masked_name}@{domain}"
+    else:
         user_email = None
 
     return render(
@@ -851,6 +878,22 @@ def resend_otp(request):
     if not user_id:
         messages.error(request, 'Session expired. Please register again.')
         return redirect('register')
+
+    if user_id == -1:
+        last_otp_time = request.session.get('last_otp_time')
+        if last_otp_time and time.time() - last_otp_time < 60:
+            remaining = int(60 - (time.time() - last_otp_time))
+            messages.error(request, f'Please wait {remaining} seconds before requesting a new OTP.')
+            return redirect('verify_otp')
+
+        otp = str(secrets.randbelow(900000) + 100000)
+        otp_hash = hashlib.sha256(
+            f"{otp}:{settings.SECRET_KEY}".encode()
+        ).hexdigest()
+        request.session['registration_otp_hash'] = otp_hash
+        request.session['last_otp_time'] = time.time()
+        messages.success(request, 'A new OTP has been sent to your email.')
+        return redirect('verify_otp')
 
     try:
         user = User.objects.get(id=user_id, is_active=False)

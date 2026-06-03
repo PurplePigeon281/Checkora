@@ -11,17 +11,20 @@ class CustomUserCreationForm(UserCreationForm):
         fields = UserCreationForm.Meta.fields + ('email',)
 
     def clean_email(self):
-        """Validate and normalize the email field.
+        """Clean and normalize the email field.
 
         Duplicate-email checks are intentionally deferred to the view
         layer, which returns a generic response regardless of whether
-        the address is already registered.  This prevents user
+        the address is already registered. This prevents user
         enumeration through form-level error messages.
         """
-        return self.cleaned_data.get('email')
+        email = self.cleaned_data.get('email')
+        if email:
+            email = email.strip()
+        return email
 
     def clean_username(self):
-        """Return the username without raising on duplicates.
+        """Clean and return the username.
 
         The view layer handles username conflicts with a generic
         response to prevent user enumeration.
@@ -29,13 +32,20 @@ class CustomUserCreationForm(UserCreationForm):
         return self.cleaned_data.get('username')
 
     def validate_unique(self):
-        """Skip ModelForm uniqueness checks.
+        """Exclude username and email from uniqueness validation.
 
-        Username and email uniqueness are enforced inside the view's
-        ``transaction.atomic`` block so that race conditions are
-        eliminated and responses remain generic.
+        These constraints are enforced in the view layer to prevent user
+        enumeration, while other uniqueness checks remain active.
         """
-        pass
+        exclude = self._get_validation_exclusions()
+        if not isinstance(exclude, set):
+            exclude = set(exclude)
+        exclude.add('username')
+        exclude.add('email')
+        try:
+            self.instance.validate_unique(exclude=exclude)
+        except ValidationError as e:
+            self._update_errors(e)
 
 
 class CustomSetPasswordForm(SetPasswordForm):

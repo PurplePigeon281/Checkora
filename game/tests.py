@@ -1687,6 +1687,40 @@ class SecureRegistrationTest(TestCase):
         # The user must still exist
         self.assertTrue(User.objects.filter(id=user.id).exists())
 
+    # --- 9. Active email conflict dummy session verify ------------------------
+
+    def test_active_email_conflict_sets_up_dummy_session_and_renders_verify_otp(self):
+        """Registering with an active email must set up dummy session data.
+
+        This allows /verify-otp/ to render successfully.
+        """
+        User.objects.create_user(
+            username='verifiedplayer',
+            email='taken@example.com',
+            password='StrongPass123!',
+            is_active=True,
+        )
+        payload = {**self.VALID_PAYLOAD, 'email': 'taken@example.com'}
+        response = self.client.post('/register/', data=payload, follow=True)
+        # Should redirect to verify-otp and load with 200 OK
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Enter 6-Digit OTP')
+        # Check that session contains dummy credentials and email is masked in the response
+        self.assertEqual(self.client.session.get('registration_user_id'), -1)
+        self.assertEqual(self.client.session.get('registration_email'), 'taken@example.com')
+        self.assertContains(response, 'ta***@example.com')
+
+        # Attempting to verify with a wrong OTP should return "Invalid OTP" error without crashing
+        verify_response = self.client.post('/verify-otp/', data={'otp': '000000'})
+        self.assertEqual(verify_response.status_code, 200)
+        self.assertContains(verify_response, 'Invalid OTP. Please try again.')
+
+        # Resending OTP should succeed and set last_otp_time in session without querying user
+        resend_response = self.client.post('/resend-otp/', follow=True)
+        self.assertEqual(resend_response.status_code, 200)
+        self.assertContains(resend_response, 'A new OTP has been sent to your email.')
+        self.assertIsNotNone(self.client.session.get('last_otp_time'))
+
 
 class InsufficientMaterialDrawTest(TestCase):
     """Test cases for insufficient material draw detection in Python engine fallback and ChessGame integration."""
