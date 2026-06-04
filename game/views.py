@@ -653,18 +653,14 @@ def register_view(request):
                         )
                         return redirect('verify_otp')
 
-                    # Re-verification: if an inactive account already owns
-                    # this username or email, reuse it instead of creating
-                    # a duplicate.  This preserves the original account.
-                    inactive_matches = list(
+                    inactive_match_ids = list(
                         User.objects.filter(
                             Q(username__iexact=username) | Q(email__iexact=email),
                             is_active=False,
-                        ).select_for_update()
+                        ).select_for_update().values_list('id', flat=True).distinct()
                     )
-                    matched_ids = {matched_user.id for matched_user in inactive_matches}
 
-                    if len(matched_ids) > 1:
+                    if len(inactive_match_ids) > 1:
                         request.session['registration_user_id'] = -1
                         request.session['registration_email'] = email
                         dummy_otp = str(secrets.randbelow(900000) + 100000)
@@ -672,6 +668,7 @@ def register_view(request):
                             f"{dummy_otp}:{settings.SECRET_KEY}".encode()
                         ).hexdigest()
                         request.session['otp_created_at'] = time.time()
+                        # Return the same generic response to prevent username/email enumeration.
                         messages.success(
                             request,
                             'If your details are valid, a verification '
@@ -679,7 +676,11 @@ def register_view(request):
                         )
                         return redirect('verify_otp')
 
-                    inactive_user = inactive_matches[0] if inactive_matches else None
+                    inactive_user = (
+                        User.objects.select_for_update().get(id=inactive_match_ids[0])
+                        if inactive_match_ids
+                        else None
+                    )
 
                     if inactive_user:
                         user = inactive_user

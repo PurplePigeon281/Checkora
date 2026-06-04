@@ -2031,8 +2031,8 @@ class AdditionalViewsSecurityAndLessonsTest(TestCase):
         }
 
         # Registration should fall back to generic flow
-        response = self.client.post('/register/', data=payload)
-        self.assertRedirects(response, '/verify-otp/')
+        response = self.client.post(reverse('register'), data=payload)
+        self.assertRedirects(response, reverse('verify_otp'))
 
         # Verify neither user got merged/overwritten
         user_a.refresh_from_db()
@@ -2045,7 +2045,7 @@ class AdditionalViewsSecurityAndLessonsTest(TestCase):
 
     def test_resend_otp_post_only(self):
         # Verify GET returns 405 Method Not Allowed
-        response = self.client.get('/resend-otp/')
+        response = self.client.get(reverse('resend_otp'))
         self.assertEqual(response.status_code, 405)
 
         # Setup session for active registration to test POST
@@ -2055,9 +2055,9 @@ class AdditionalViewsSecurityAndLessonsTest(TestCase):
         session.save()
 
         # POST should work
-        response = self.client.post('/resend-otp/')
+        response = self.client.post(reverse('resend_otp'))
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, '/verify-otp/')
+        self.assertRedirects(response, reverse('verify_otp'))
 
     def test_resend_otp_deferred_session_writes(self):
         user = User.objects.create_user(
@@ -2074,7 +2074,7 @@ class AdditionalViewsSecurityAndLessonsTest(TestCase):
 
         # Mock send_mail to raise SMTPException
         with mock.patch('game.views.send_mail', side_effect=SMTPException('SMTP error')):
-            response = self.client.post('/resend-otp/', follow=True)
+            response = self.client.post(reverse('resend_otp'), follow=True)
 
         self.assertContains(response, 'Failed to resend OTP. Please try again.')
         
