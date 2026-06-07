@@ -69,6 +69,10 @@ def landing(request):
 def preloader(request):
     return render(request, 'game/preloading.html')
 
+def disclaimer_view(request):
+    """Render the platform legal disclaimer page."""
+    return render(request, 'game/disclaimer.html')
+
 @ensure_csrf_cookie
 def index(request):
     """Render the board and initialise a new game in the session."""
@@ -1471,6 +1475,8 @@ def confirm_delete_account(request, uidb64, token):
     )
 
     return redirect('landing')
+
+
 @csrf_exempt
 @require_POST
 def analyze_game_view(request):

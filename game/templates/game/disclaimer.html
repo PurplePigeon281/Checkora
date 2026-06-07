@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Disclaimer - Checkora{% endblock %}
+
+{% block content %}
+<style>
+    .legal-container {
+        max-width: 800px;
+        margin: 60px auto;
+        padding: 40px 20px;
+        color: #b0b3b8; /* Muted silver/gray text */
+        font-family: 'Inter', sans-serif;
+        line-height: 1.7;
+    }
+
+    .legal-header {
+        text-align: center;
+        margin-bottom: 50px;
+    }
+
+    .legal-header h1 {
+        color: #ffffff;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 10px;
+    }
+
+    .legal-header .gold-text {
+        color: #f5c453; /* Checkora Gold Accent */
+    }
+
+    .legal-header p {
+        color: #65676b;
+        font-size: 0.95rem;
+    }
+
+    .legal-section {
+        background-color: #111424; /* Premium dark card background */
+        border: 1px solid #1d2238;
+        border-radius: 12px;
+        padding: 30px;
+        margin-bottom: 25px;
+    }
+
+    .legal-section h2 {
+        color: #ffffff;
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-top: 0;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+
+    .legal-section h2::before {
+        content: "▪";
+        color: #f5c453;
+        margin-right: 10px;
+        font-size: 1.2rem;
+    }
+
+    .legal-section p {
+        margin: 0 0 15px 0;
+    }
+
+    .legal-section p:last-child {
+        margin-bottom: 0;
+    }
+
+    @media (max-width: 768px) {
+        .legal-container {
+            margin: 30px auto;
+            padding: 20px 15px;
+        }
+        .legal-header h1 {
+            font-size: 2rem;
+        }
+        .legal-section {
+            padding: 20px;
+        }
+    }
+</style>
+
+<div class="legal-container">
+    <div class="legal-header">
+        <h1>Platform <span class="gold-text">Disclaimer</span></h1>
+        <p>Last updated: June 2026</p>
+    </div>
+
+    <div class="legal-section">
+        <h2>General Information</h2>
+        <p>The information, services, and gameplay engines provided on Checkora are for general informational, educational, and entertainment purposes only. While we strive to maintain a flawless experience, all platform features, including analytical tools, AI opponents, and game histories, are provided on an "as-is" and "as-available" basis without any warranties of any kind.</p>
+    </div>
+
+    <div class="legal-section">
+        <h2>Engine & Analytical Accuracy</h2>
+        <p>Checkora utilizes a hybrid architecture combining a Django web framework with a high-performance, native C++ Minimax engine. While our engine is engineered for precision move validation and high-speed processing, we do not guarantee absolute perfection in live data calculations, dynamic material evaluation, or depth analytics. Move suggestions and evaluation scores are algorithmic estimations and should not be treated as official professional chess arbitrage.</p>
+    </div>
+
+    <div class="legal-section">
+        <h2>Fair Play & Third-Party Software</h2>
+        <p>Our automated systems work continuously to analyze player metrics to ensure PvP integrity. Checkora disclaims any liability arising from false-positive algorithmic flags, player disconnects during active server synchronization, or issues stemming from user-side network instability affecting the game timers.</p>
+    </div>
+
+    <div class="legal-section">
+        <h2>Limitation of Liability</h2>
+        <p>To the maximum extent permitted by applicable law, Checkora, its developers, and contributors shall not be liable for any direct, indirect, incidental, or consequential damages resulting from your use of, or inability to use, the platform—including but not limited to loss of data, tracking history profile corruption, or match disconnects.</p>
+    </div>
+
+    <div class="legal-section">
+        <h2>External Links</h2>
+        <p>Our platform or community sections may occasionally contain links to external third-party websites (such as GitHub, Discord, or official FIDE documentation). Checkora does not monitor, endorse, or assume responsibility for the accuracy or reliability of any third-party information or services linked herein.</p>
+    </div>
+</div>
+{% endblock %}
